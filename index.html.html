@@ -1,0 +1,323 @@
+markdown:Monitor de Temperatura Inteligente - Unimed Vacinas:monitor_temperatura.html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Temperatura Industrial - Unimed Vacinas</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        unimed: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#009639',
+                            600: '#007a2e',
+                            700: '#005e22',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <header class="bg-unimed-500 text-white shadow-md py-4 px-6 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="bg-white p-2 rounded-lg shadow-inner">
+                <svg class="w-8 h-8 text-unimed-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m0-18l-4 4m4-4l4 4m-4 14l-4-4m4 4l4-4" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight">Segurança Térmica Unimed</h1>
+                <p class="text-xs text-unimed-100 font-medium">Controlo e registo digital de cadeia de frio domiciliar</p>
+            </div>
+        </div>
+        <div class="bg-unimed-600 px-4 py-2 rounded-full border border-unimed-700 text-xs font-bold flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></span> Sistema Ativo (+2°C a +8°C)
+        </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-1 xl:grid-cols-12 gap-6 p-6 overflow-hidden">
+        
+        <div class="xl:col-span-4 flex flex-col gap-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-4">
+                <h2 class="text-md font-bold text-slate-700 flex items-center gap-2">
+                    <i data-lucide="thermometer" class="text-unimed-500"></i> Novo Registo de Temperatura
+                </h2>
+                <p class="text-xs text-slate-400 -mt-2">Insira os dados lidos diretamente no termómetro da caixa</p>
+
+                <form id="formTemperatura" onsubmit="adicionarRegisto(event)" class="flex flex-col gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome da Técnica</label>
+                        <input type="text" id="tecnica" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-medium outline-none focus:border-unimed-500 transition-all" placeholder="Ex: Maria Silva">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Número da Caixa Térmica</label>
+                        <select id="numCaixa" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-semibold text-slate-700 outline-none focus:border-unimed-500 transition-all">
+                            <option value="">Selecione a caixa...</option>
+                            <option value="Caixa Térmica 01">Caixa Térmica 01</option>
+                            <option value="Caixa Térmica 02">Caixa Térmica 02</option>
+                            <option value="Caixa Térmica 03">Caixa Térmica 03</option>
+                            <option value="Caixa Térmica 04">Caixa Térmica 04</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 text-center">Momento (°C)</label>
+                            <input type="number" step="0.1" id="tempMomento" required class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-center text-sm font-bold text-slate-800 outline-none focus:border-unimed-500" placeholder="0.0">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-blue-500 uppercase mb-1 text-center">Mínima (°C)</label>
+                            <input type="number" step="0.1" id="tempMinima" required class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-center text-sm font-bold text-blue-600 outline-none focus:border-blue-500" placeholder="0.0">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-orange-500 uppercase mb-1 text-center">Máxima (°C)</label>
+                            <input type="number" step="0.1" id="tempMaxima" required class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-center text-sm font-bold text-orange-600 outline-none focus:border-orange-500" placeholder="0.0">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-unimed-500 hover:bg-unimed-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-unimed-500/10">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i> Salvar e Localizar
+                    </button>
+                </form>
+            </div>
+
+            <div id="alertaEmergencia" class="hidden bg-red-50 border border-red-200 p-4 rounded-2xl flex items-start gap-3 animate-pulse">
+                <div class="bg-red-500 text-white p-2 rounded-xl">
+                    <i data-lucide="alert-octagon" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-red-800">Desvio Térmico Detetado!</h4>
+                    <p class="text-xs text-red-600 mt-0.5 leading-relaxed">Uma das temperaturas informadas violou o limite regulamentar (+2°C a +8°C). Verifique a caixa imediatamente.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="xl:col-span-8 flex flex-col gap-6 max-h-[85vh]">
+            
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3">
+                <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="trending-up" class="w-4 h-4 text-unimed-500"></i> Gráfico de Linha Temporal por Caixa
+                </h3>
+                <div class="h-[200px] w-full relative">
+                    <canvas id="graficoTermico"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex-1 flex flex-col overflow-hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <div>
+                        <h3 class="text-md font-bold text-slate-700 flex items-center gap-2">
+                            <i data-lucide="shield-check" class="text-unimed-500"></i> Histórico de Conferência Diária
+                        </h3>
+                        <p class="text-xs text-slate-400">Dados estruturados prontos para fiscalização e arquivo</p>
+                    </div>
+                    <button onclick="exportarRelatorioCSV()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-sm">
+                        <i data-lucide="download-cloud" class="w-4 h-4"></i> Baixar Relatório
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-auto border border-slate-100 rounded-xl custom-scrollbar">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="sticky top-0 bg-slate-100 text-xs font-bold text-slate-600 uppercase border-b border-slate-200 z-10">
+                            <tr>
+                                <th class="p-3">Horário / Local</th>
+                                <th class="p-3 text-center">Caixa</th>
+                                <th class="p-3 text-center">Momento</th>
+                                <th class="p-3 text-center">Mínima</th>
+                                <th class="p-3 text-center">Máxima</th>
+                                <th class="p-3 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoTabela" class="divide-y divide-slate-100 text-xs font-medium text-slate-600">
+                            <tr id="linhaVazia">
+                                <td colspan="6" class="p-8 text-center text-slate-400 italic">
+                                    Nenhum dado capturado hoje. Insira a leitura acima para iniciar.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        let historicoLeituras = [];
+        let grafico = null;
+
+        // Simulador Geográfico Inteligente para rotas de Fortaleza/Eusébio
+        const bairrosFortaleza = [
+            "Rua Caio Cid, Engenheiro Luciano Cavalcante, Fortaleza - CE",
+            "Av. Santos Dumont, Aldeota, Fortaleza - CE",
+            "Rua Maria Souza Sales, Centro, Eusébio - CE",
+            "Av. Washington Soares, Edson Queiroz, Fortaleza - CE",
+            "Rua Reverendo Bolívar Pinto Bandeira, Luciano Cavalcante, Fortaleza - CE"
+        ];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            inicializarGrafico();
+        });
+
+        function inicializarGrafico() {
+            const ctx = document.getElementById('graficoTermico').getContext('2d');
+            grafico = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Temp. Momento (°C)', data: [], borderColor: '#009639', backgroundColor: '#00963920', tension: 0.2, borderWidth: 3 },
+                        { label: 'Mínima (°C)', data: [], borderColor: '#3b82f6', borderDash: [4, 4], tension: 0.1, fill: false },
+                        { label: 'Máxima (°C)', data: [], borderColor: '#f97316', borderDash: [4, 4], tension: 0.1, fill: false }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: 0, max: 12, grid: { color: '#e2e8f0' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function adicionarRegisto(e) {
+            e.preventDefault();
+
+            const tecnica = document.getElementById('tecnica').value;
+            const caixa = document.getElementById('numCaixa').value;
+            const tMomento = parseFloat(document.getElementById('tempMomento').value);
+            const tMinima = parseFloat(document.getElementById('tempMinima').value);
+            const tMaxima = parseFloat(document.getElementById('tempMaxima').value);
+
+            // Validação de Segurança Térmica (+2°C a +8°C)
+            const violouMomento = tMomento < 2.0 || tMomento > 8.0;
+            const violouMinima = tMinima < 2.0 || tMinima > 8.0;
+            const violouMaxima = tMaxima < 2.0 || tMaxima > 8.0;
+            const statusCritico = violouMomento || violouMinima || violouMaxima;
+
+            // Captação de Horário em Tempo Real
+            const agora = new Date();
+            const horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            // Puxa localização sequencial automática da rota simulada
+            const localizacao = bairrosFortaleza[historicoLeituras.length % bairrosFortaleza.length];
+
+            const novoRegisto = {
+                horario: horaFormatada,
+                localizacao: localizacao,
+                tecnica: tecnica,
+                caixa: caixa,
+                momento: tMomento,
+                minima: tMinima,
+                maxima: tMaxima,
+                critico: statusCritico
+            };
+
+            historicoLeituras.push(novoRegisto);
+            atualizarInterface(statusCritico);
+            
+            // Limpa apenas os campos de temperatura para o próximo ponto da rota
+            document.getElementById('tempMomento').value = '';
+            document.getElementById('tempMinima').value = '';
+            document.getElementById('tempMaxima').value = '';
+        }
+
+        function atualizarInterface(alertaAtivo) {
+            const linhaVazia = document.getElementById('linhaVazia');
+            if (linhaVazia) linhaVazia.remove();
+
+            const tabela = document.getElementById('corpoTabela');
+            tabela.innerHTML = ''; // Limpa e reconstrói de forma ordenada (Mais recente no topo)
+
+            // Exibe ou oculta o banner emergencial
+            const banner = document.getElementById('alertaEmergencia');
+            if (alertaAtivo || historicoLeituras.some(r => r.critico)) {
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+
+            // Atualiza os dados da tabela física
+            [...historicoLeituras].reverse().forEach(r => {
+                const tr = document.createElement('tr');
+                tr.className = r.critico ? "bg-red-50/70 hover:bg-red-50 transition-colors" : "hover:bg-slate-50 transition-colors";
+                
+                tr.innerHTML = `
+                    <td class="p-3">
+                        <div class="font-bold text-slate-700">${r.horario}</div>
+                        <div class="text-[10px] text-slate-400 font-normal max-w-xs truncate">${r.localizacao}</div>
+                    </td>
+                    <td class="p-3 text-center font-bold text-slate-600">${r.caixa.replace('Caixa Térmica ', 'CX')}</td>
+                    <td class="p-3 text-center font-black text-slate-800 text-sm">${r.momento.toFixed(1)}°C</td>
+                    <td class="p-3 text-center font-bold text-blue-600">${r.minima.toFixed(1)}°C</td>
+                    <td class="p-3 text-center font-bold text-orange-600">${r.maxima.toFixed(1)}°C</td>
+                    <td class="p-3 text-center">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${r.critico ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}">
+                            ${r.critico ? 'Fora Padrão' : 'Seguro'}
+                        </span>
+                    </td>
+                `;
+                tabela.appendChild(tr);
+            });
+
+            // Atualiza o Gráfico de Linha
+            grafico.data.labels = historicoLeituras.map(r => `${r.horario} (${r.caixa.replace('Caixa Térmica ', 'CX')})`);
+            grafico.data.datasets[0].data = historicoLeituras.map(r => r.momento);
+            grafico.data.datasets[1].data = historicoLeituras.map(r => r.minima);
+            grafico.data.datasets[2].data = historicoLeituras.map(r => r.maxima);
+            grafico.update();
+        }
+
+        // Motor de exportação direta para CSV / Excel
+        function exportarRelatorioCSV() {
+            if (historicoLeituras.length === 0) {
+                alert("Nenhum dado disponível para exportação neste momento.");
+                return;
+            }
+
+            let csvContent = "\uFEFF"; // Garante compatibilidade de acentuação no Excel do Windows
+            csvContent += "Horario;Localizacao;Tecnica;Identificacao Caixa;Temperatura Momento;Temperatura Minima;Temperatura Maxima;Status Seguranca\n";
+
+            historicoLeituras.forEach(r => {
+                const status = r.critico ? "FORA DO PADRAO" : "CONFORME (+2 A +8C)";
+                csvContent += `${r.horario};"${r.localizacao}";"${r.tecnica}";"${r.caixa}";${r.momento.toFixed(1)};${r.minima.toFixed(1)};${r.maxima.toFixed(1)};${status}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            const hoje = new Date().toISOString().split('T')[0];
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Relatorio_Auditoria_Termica_Unimed_${hoje}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

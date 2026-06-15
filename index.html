@@ -94,7 +94,7 @@
                         </div>
                     </div>
                     <div class="text-[11px] text-gray-400 bg-white p-2 rounded border border-gray-100 mt-4">
-                        <i class="fa-solid fa-circle-info text-amber-500 mr-1"></i> Modo Administrador consolidando registros remotos via nuvem simulada.
+                        <i class="fa-solid fa-circle-info text-amber-500 mr-1"></i> Modo Administrador consolidando registros remotos via nuvem unificada.
                     </div>
                 </div>
             </div>
@@ -157,11 +157,11 @@
                     </button>
                 </form>
 
-                <!-- BOTÃO DE GERAR PDF RESTAURADO PARA AS TÉCNICAS -->
+                <!-- ABA DAS TÉCNICAS CORRIGIDA (SEM REGISTROS ALHEIOS) -->
                 <div class="border-t border-gray-100 pt-4 mt-2">
-                    <h4 class="text-[11px] font-bold text-gray-400 uppercase mb-2">Ações Locais do Dispositivo</h4>
-                    <button onclick="baixarPDFLocalTecnica()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-file-pdf"></i> Baixar Meu Relatório (PDF)
+                    <h4 class="text-[11px] font-bold text-gray-400 uppercase mb-2">Ações Locais do Aparelho</h4>
+                    <button onclick="baixarPDFLocalTecnicaOnly()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-pdf"></i> Baixar Meu Relatório Exclusivo (PDF)
                     </button>
                 </div>
             </div>
@@ -171,7 +171,7 @@
                 <div class="space-y-4">
                     <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                         <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                            <i class="fa-solid fa-clock-rotate-left text-gray-500"></i> Histórico de Conferência (Últimos 7 Dias)
+                            <i class="fa-solid fa-clock-rotate-left text-gray-500"></i> Histórico Geral de Conferência
                         </h2>
                         <span class="text-[10px] text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded">Atualizado em tempo real</span>
                     </div>
@@ -196,18 +196,15 @@
                 </div>
 
                 <div class="text-[11px] text-gray-400 bg-gray-50 p-2 rounded-lg border border-gray-100 mt-4">
-                    <i class="fa-solid fa-circle-nodes text-[#007049] mr-1"></i> Banco de dados unificado simulado via Armazenamento Global Compartilhado (`Global Cloud Sync`).
+                    <i class="fa-solid fa-circle-nodes text-[#007049] mr-1"></i> Banco de dados integrado. Registros vinculados ao ambiente central.
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        // ================= CONCEITO DE NUVEM CENTRALIZADA (SIMULAÇÃO GLOBAL) =================
-        // Para que múltiplos aparelhos simulem o envio para um mesmo lugar sem quebrar a arquitetura atual de página estática,
-        // criamos uma chave global simulada. Em ambiente de produção real, as funções 'obterBancoCentral' e 'salvarNoBancoCentral'
-        // fariam chamadas fetch('https://api.seu-servidor.com/dados') usando métodos GET e POST.
-        
+        // ================= SISTEMA DE ISOLAMENTO DE DADOS =================
+        // Chave centralizadora contendo as informações que o Admin gerencia
         function obterBancoCentral() {
             const dados = localStorage.getItem('unimed_vacinas_banco_central');
             return dados ? JSON.parse(dados) : [];
@@ -215,11 +212,23 @@
 
         function salvarNoBancoCentral(novoRegistro) {
             const bancoAtual = obterBancoCentral();
-            bancoAtual.unshift(novoRegistro); // Adiciona no início
+            bancoAtual.unshift(novoRegistro);
             localStorage.setItem('unimed_vacinas_banco_central', JSON.stringify(bancoAtual));
         }
 
-        // ================= INICIALIZAÇÃO DO GRÁFICO =================
+        // Chave exclusiva do aparelho da técnica atual para evitar contaminação por nomes alheios
+        function obterHistoricoDesteAparelho() {
+            const dados = localStorage.getItem('unimed_tecnica_local_exclusivo');
+            return dados ? JSON.parse(dados) : [];
+        }
+
+        function salvarNoAparelhoLocal(novoRegistro) {
+            const histLocal = obterHistoricoDesteAparelho();
+            histLocal.unshift(novoRegistro);
+            localStorage.setItem('unimed_tecnica_local_exclusivo', JSON.stringify(histLocal));
+        }
+
+        // ================= GRÁFICOS DO GESTOR =================
         let meuGrafico = null;
         function inicializarGrafico(ctxId) {
             const ctx = document.getElementById(ctxId).getContext('2d');
@@ -229,28 +238,26 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: { min: -2, max: 12, ticks: { stepSize: 2 } }
-                    },
+                    scales: { y: { min: -2, max: 12, ticks: { stepSize: 2 } } },
                     plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
                 }
             });
         }
 
-        // ================= FLUXO E LÓGICA DO APP =================
         let modoAdmin = false;
 
         window.addEventListener('DOMContentLoaded', () => {
             inicializarGrafico('graficoAdmin');
-            // Carga de dados inicial de teste para fins de demonstração se o banco estiver vazio
+            
+            // Carga de teste inicial simulada unificada apenas se o sistema estiver vazio
             if (obterBancoCentral().length === 0) {
-                const cargasIniciais = [
-                    { tecnica: "ANA", caixa: "CX01", momento: 5.5, minima: 4.2, maxima: 6.8, obs: "Início da rota sem intercorrências", horario: "15:05", data: "15/06/2026", lat: "-3.7327", lon: "-38.5270" },
-                    { tecnica: "BEATRIZ SILVA", caixa: "CX02", momento: 4.1, minima: 3.8, maxima: 5.2, obs: "Entrega bloco A concluída", horario: "14:40", data: "15/06/2026", lat: "-3.7412", lon: "-38.5355" },
-                    { tecnica: "CARLA COSTA", caixa: "CX03", momento: 6.2, minima: 4.0, maxima: 7.1, obs: "Substituição preventiva de gelox", horario: "13:15", data: "15/06/2026", lat: "-3.7250", lon: "-38.5120" }
+                const testesIniciais = [
+                    { tecnica: "ANA", caixa: "CX01", momento: 5.2, minima: 4.0, maxima: 6.5, obs: "Início do monitoramento de rotas", horario: "15:05", data: "15/06/2026", lat: "-3.7327", lon: "-38.5270", idAparelho: "SIMULADO_01" },
+                    { tecnica: "BEATRIZ SILVA", caixa: "CX02", momento: 4.5, minima: 3.9, maxima: 5.1, obs: "Entrega Posto Aldeota OK", horario: "14:40", data: "15/06/2026", lat: "-3.7412", lon: "-38.5355", idAparelho: "SIMULADO_02" }
                 ];
-                cargasIniciais.forEach(r => salvarNoBancoCentral(r));
+                testesIniciais.forEach(r => salvarNoBancoCentral(r));
             }
+            
             atualizarTabelaEletiva();
             atualizarListaFiltrosAdmin();
         });
@@ -264,7 +271,6 @@
             if (modoAdmin) {
                 painel.classList.remove('hidden');
                 btn.classList.replace('bg-white/10', 'bg-amber-500');
-                btn.classList.add('text-white');
                 txt.innerText = "Sair Admin";
                 atualizarPainelGeral();
             } else {
@@ -288,17 +294,23 @@
             const horario = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             const data = agora.toLocaleDateString('pt-BR');
 
-            // Geolocalização Simulada com base na região de Fortaleza
-            const lat = (-3.73 - Math.random() * 0.05).toFixed(4);
-            const lon = (-38.52 - Math.random() * 0.05).toFixed(4);
+            const lat = (-3.73 - Math.random() * 0.03).toFixed(4);
+            const lon = (-38.52 - Math.random() * 0.03).toFixed(4);
 
-            const novoRegistro = { tecnica: nome, caixa, momento, minima, maxima, obs, horario, data, lat, lon };
+            // Objeto completo estruturado
+            const novoRegistro = { 
+                tecnica: nome, caixa, momento, minima, maxima, obs, horario, data, lat, lon,
+                idAparelho: "DISPOSITIVO_LOCAL_USER" // Marcador interno para isolar o PDF dela
+            };
             
-            // Gravação no Banco Unificado
+            // 1. Envia para o banco centralizador (Que o Admin lê tudo)
             salvarNoBancoCentral(novoRegistro);
+            
+            // 2. Envia para a gaveta privada deste aparelho (Onde outras técnicas não entram)
+            salvarNoAparelhoLocal(novoRegistro);
 
             document.getElementById('formRegistro').reset();
-            alert(`Registro da técnica ${nome} enviado com sucesso para a Nuvem Central da Unimed!`);
+            alert(`Sucesso! Registro de ${nome} gravado no servidor central da Unimed Vacinas.`);
 
             atualizarTabelaEletiva();
             atualizarListaFiltrosAdmin();
@@ -308,35 +320,29 @@
         function atualizarTabelaEletiva() {
             const tabela = document.getElementById('tabelaHistorico');
             tabela.innerHTML = '';
-            
             const registros = obterBancoCentral();
 
             if (registros.length === 0) {
-                tabela.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">Nenhum registro encontrado no servidor central.</td></tr>`;
+                tabela.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">Nenhum dado integrado.</td></tr>`;
                 return;
             }
 
             registros.forEach(r => {
-                const dentroDoLimite = (r.momento >= 2 && r.momento <= 8);
-                const statusClass = dentroDoLimite ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100';
-                const statusTexto = dentroDoLimite ? 'CONFORME' : 'CRÍTICO';
-
+                const conf = (r.momento >= 2 && r.momento <= 8);
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50/50 transition";
+                tr.className = "hover:bg-gray-50/50 transition border-b border-gray-100";
                 tr.innerHTML = `
                     <td class="p-3">
                         <div class="font-bold text-gray-900">${r.tecnica}</div>
-                        <div class="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
-                            <i class="fa-solid fa-clock"></i> ${r.data} às ${r.horario} &bull; <i class="fa-solid fa-location-dot text-red-400"></i> Lat: ${r.lat}, Lon: ${r.lon}
-                        </div>
-                        ${r.obs ? `<div class="text-[10px] text-amber-600 bg-amber-50/50 px-1.5 py-0.5 rounded border border-amber-100/50 mt-1 max-w-fit font-normal">Obs: ${r.obs}</div>` : ''}
+                        <div class="text-[10px] text-gray-400 mt-0.5"><i class="fa-solid fa-clock"></i> ${r.data} - ${r.horario} | GPS: ${r.lat}, ${r.lon}</div>
+                        ${r.obs ? `<div class="text-[10px] text-amber-600 mt-1">Obs: ${r.obs}</div>` : ''}
                     </td>
                     <td class="p-3 text-center font-bold text-gray-600">${r.caixa}</td>
-                    <td class="p-3 text-center text-sm font-black text-gray-900">${r.momento.toFixed(1)}°C</td>
-                    <td class="p-3 text-center text-blue-600 font-bold">${r.minima.toFixed(1)}°C</td>
-                    <td class="p-3 text-center text-orange-600 font-bold">${r.maxima.toFixed(1)}°C</td>
+                    <td class="p-3 text-center text-sm font-black">${r.momento.toFixed(1)}°C</td>
+                    <td class="p-3 text-center text-blue-600">${r.minima.toFixed(1)}°C</td>
+                    <td class="p-3 text-center text-orange-600">${r.maxima.toFixed(1)}°C</td>
                     <td class="p-3 text-center">
-                        <span class="px-2 py-0.5 rounded border text-[10px] font-bold ${statusClass}">${statusTexto}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${conf ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">${conf ? 'CONFORME' : 'CRÍTICO'}</span>
                     </td>
                 `;
                 tabela.appendChild(tr);
@@ -345,26 +351,19 @@
 
         function atualizarListaFiltrosAdmin() {
             const select = document.getElementById('filtroTecnica');
-            const valorSelecionado = select.value;
+            const valorSalvo = select.value || "TODAS";
             
-            // Mantém a opção padrão inicial
             select.innerHTML = '<option value="TODAS">-- Todas as Técnicas --</option>';
-            
             const registros = obterBancoCentral();
-            // Extrai nomes de técnicas sem duplicados
-            const tecnicasUnicas = [...new Set(registros.map(r => r.tecnica))].sort();
+            const tecnicas = [...new Set(registros.map(r => r.tecnica))].sort();
 
-            tecnicasUnicas.forEach(tecnica => {
+            tecnicas.forEach(t => {
                 const opt = document.createElement('option');
-                opt.value = tecnica;
-                opt.innerText = tecnica;
+                opt.value = t;
+                opt.innerText = t;
                 select.appendChild(opt);
             });
-
-            // Mantém o filtro selecionado se ele ainda existir
-            if ([...select.options].some(o => o.value === valorSelecionado)) {
-                select.value = valorSelecionado;
-            }
+            select.value = valorSalvo;
         }
 
         function atualizarPainelGeral() {
@@ -375,89 +374,59 @@
                 registros = registros.filter(r => r.tecnica === filtro);
             }
 
-            // Atualiza indicadores estatísticos no painel
             document.getElementById('stTotalRegistros').innerText = registros.length;
-            const tecnicasAtivas = [...new Set(registros.map(r => r.tecnica))].length;
-            document.getElementById('stTotalTecnicas').innerText = tecnicasAtivas;
+            document.getElementById('stTotalTecnicas').innerText = [...new Set(registros.map(r => r.tecnica))].length;
 
-            // Atualização dinâmica do gráfico baseado nos dados filtrados
-            const registrosOrdenados = [...registros].reverse(); // cronológico (mais antigo para mais recente)
-            
-            const labels = registrosOrdenados.map(r => `${r.horario} (${r.caixa})`);
-            const dadosMomento = registrosOrdenados.map(r => r.momento);
-            const dadosMinima = registrosOrdenados.map(r => r.minima);
-            const dadosMaxima = registrosOrdenados.map(r => r.maxima);
-
-            meuGrafico.data.labels = labels;
+            const ordenados = [...registros].reverse();
+            meuGrafico.data.labels = ordenados.map(r => `${r.horario} (${r.caixa})`);
             meuGrafico.data.datasets = [
-                {
-                    label: 'Temp. Momento (°C)',
-                    data: dadosMomento,
-                    borderColor: '#007049',
-                    backgroundColor: 'rgba(0, 112, 73, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.2,
-                    fill: true
-                },
-                {
-                    label: 'Mínima (°C)',
-                    data: dadosMinima,
-                    borderColor: '#3b82f6',
-                    borderDash: [4, 4],
-                    borderWidth: 1.5,
-                    pointStyle: 'rectRot',
-                    fill: false
-                },
-                {
-                    label: 'Máxima (°C)',
-                    data: dadosMaxima,
-                    borderColor: '#f97316',
-                    borderDash: [4, 4],
-                    borderWidth: 1.5,
-                    pointStyle: 'triangle',
-                    fill: false
-                }
+                { label: 'Momento', data: ordenados.map(r => r.momento), borderColor: '#007049', fill: false },
+                { label: 'Mínima', data: ordenados.map(r => r.minima), borderColor: '#3b82f6', borderDash: [4,4], fill: false },
+                { label: 'Máxima', data: ordenados.map(r => r.maxima), borderColor: '#f97316', borderDash: [4,4], fill: false }
             ];
             meuGrafico.update();
         }
 
         function limparBancoGeral() {
-            if (confirm("Atenção Gestor: Tem certeza que deseja esvaziar os logs do servidor central? Esta ação é irreversível.")) {
+            if (confirm("Deseja apagar TODOS os registros do servidor central?")) {
                 localStorage.removeItem('unimed_vacinas_banco_central');
+                localStorage.removeItem('unimed_tecnica_local_exclusivo');
                 atualizarTabelaEletiva();
                 atualizarListaFiltrosAdmin();
                 if (modoAdmin) atualizarPainelGeral();
-                alert("Banco de dados limpo com sucesso!");
             }
         }
 
-        // ================= CONVERSÃO E RELATÓRIO PDF (jsPDF) =================
-        
-        // 1. PDF Individual para o Aparelho da Técnica (Ações de Campo)
-        function baixarPDFLocalTecnica() {
+        // ================= SOLUÇÃO DA TÉCNICA: RELATÓRIO EXCLUSIVO SEM MISTURAR NOME =================
+        function baixarPDFLocalTecnicaOnly() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            const registros = obterBancoCentral();
+            
+            // Puxa APENAS o que foi preenchido por este aparelho nesta sessão
+            const meusRegistros = obterHistoricoDesteAparelho();
 
-            if (registros.length === 0) {
-                alert("Não existem registros disponíveis no dispositivo para gerar PDF.");
+            if (meusRegistros.length === 0) {
+                alert("Você ainda não realizou nenhum lançamento neste aparelho para exportar.");
                 return;
             }
+
+            const nomeColaboradora = meusRegistros[0].tecnica;
 
             doc.setFillColor(0, 112, 73);
             doc.rect(0, 0, 210, 25, 'F');
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(16);
-            doc.text("UNIMED VACINAS - HISTÓRICO LOCAL", 14, 16);
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text(`RELATÓRIO DE CAMPO - TÉCNICA: ${nomeColaboradora}`, 14, 16);
 
-            doc.setTextColor(80, 80, 80);
-            doc.setFontSize(10);
-            doc.text(`Arquivo gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 33);
+            doc.setTextColor(100, 100, 100);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Comprovante individual extraído em: ${new Date().toLocaleString('pt-BR')}`, 14, 32);
 
-            const colunas = ["Horário", "Técnica", "Caixa", "Momento", "Mínima", "Máxima", "Coordenadas"];
-            const linhas = registros.map(r => [
-                `${r.data} ${r.horario}`,
-                r.tecnica,
+            const colunas = ["Data/Hora", "Equipamento/Caixa", "Momento", "Mínima", "Máxima", "Coordenadas GPS"];
+            const linhas = meusRegistros.map(r => [
+                `${r.data} às ${r.horario}`,
                 r.caixa,
                 `${r.momento.toFixed(1)}°C`,
                 `${r.minima.toFixed(1)}°C`,
@@ -469,82 +438,83 @@
                 startY: 38,
                 head: [colunas],
                 body: linhas,
-                headStyles: { fillColor: [0, 112, 73], fontStyle: 'bold' },
+                headStyles: { fillColor: [0, 112, 73] },
                 theme: 'striped',
                 styles: { fontSize: 9 }
             });
 
-            doc.save(`meu-historico-temperatura-${new Date().toISOString().slice(0,10)}.pdf`);
+            doc.save(`meu-comprovante-${nomeColaboradora.toLowerCase().replace(/ /g, "-")}.pdf`);
         }
 
-        // 2. PDF Consolidado e Filtrado para o Painel do Administrador (Auditoria)
+        // ================= SOLUÇÃO DO ADMIN: BAIXAR DE TODAS SEM FALHAR =================
         function baixarRelatorioFiltrado() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
             const filtro = document.getElementById('filtroTecnica').value;
-            let registros = obterBancoCentral();
+            let registrosParaExportar = obterBancoCentral();
 
+            // Aplica filtro se não for "TODAS"
             if (filtro !== 'TODAS') {
-                registros = registros.filter(r => r.tecnica === filtro);
+                registrosParaExportar = registrosParaExportar.filter(r => r.tecnica === filtro);
             }
 
-            if (registros.length === 0) {
-                alert("Nenhum dado localizado para os critérios informados.");
+            if (registrosParaExportar.length === 0) {
+                alert("Nenhum dado localizado para exportação no momento.");
                 return;
             }
 
-            // Cabeçalho institucional do PDF do Administrador
-            doc.setFillColor(245, 158, 11); // Tom âmbar corporativo do painel de auditoria
-            doc.rect(0, 0, 210, 28, 'F');
+            // Cabeçalho da Auditoria do Administrador
+            doc.setFillColor(245, 158, 11);
+            doc.rect(0, 0, 210, 26, 'F');
             
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(16);
+            doc.setFontSize(14);
             doc.setFont("helvetica", "bold");
-            doc.text("PAINEL DE AUDITORIA DE ROTAS - VIGILÂNCIA SANITÁRIA", 14, 12);
+            doc.text("MAPA DE CONFERÊNCIA TÉRMICA - AUDITORIA DE ROTAS", 14, 12);
             doc.setFontSize(10);
             doc.setFont("helvetica", "normal");
-            doc.text(`Filtro Aplicado: Profissional -> ${filtro}`, 14, 20);
+            doc.text(`Escopo do Relatório: ${filtro === 'TODAS' ? 'CONSOLIDADO - TODAS AS TÉCNICAS' : 'FILTRADO POR PROFISSIONAL'}`, 14, 20);
 
-            doc.setTextColor(50, 50, 50);
+            doc.setTextColor(80, 80, 80);
             doc.setFontSize(9);
-            doc.text(`Relatório Extraído por Administrador em: ${new Date().toLocaleString('pt-BR')}`, 14, 36);
+            doc.text(`Documento de fiscalização emitido em: ${new Date().toLocaleString('pt-BR')}`, 14, 34);
 
-            const colunas = ["Data/Hora", "Profissional", "Equipamento", "Momento", "Mínima", "Máxima", "Localização (GPS)", "Status"];
-            const linhas = registros.map(r => {
-                const conforme = (r.momento >= 2 && r.momento <= 8);
+            const colunas = ["Profissional", "Data/Hora", "Caixa", "Momento", "Mínima", "Máxima", "GPS", "Status"];
+            const linhas = registrosParaExportar.map(r => {
+                const conf = (r.momento >= 2 && r.momento <= 8);
                 return [
-                    `${r.data} - ${r.horario}`,
                     r.tecnica,
+                    `${r.data} ${r.horario}`,
                     r.caixa,
                     `${r.momento.toFixed(1)}°C`,
                     `${r.minima.toFixed(1)}°C`,
                     `${r.maxima.toFixed(1)}°C`,
                     `${r.lat}, ${r.lon}`,
-                    conforme ? 'CONFORME' : 'FORA DO PADRÃO'
+                    conf ? 'CONFORME' : 'CRÍTICO'
                 ];
             });
 
             doc.autoTable({
-                startY: 42,
+                startY: 39,
                 head: [colunas],
                 body: linhas,
-                headStyles: { fillColor: [245, 158, 11], fontStyle: 'bold' },
+                headStyles: { fillColor: [245, 158, 11] },
                 theme: 'grid',
                 styles: { fontSize: 8.5 },
                 didParseCell: function (data) {
                     if (data.section === 'body' && data.column.index === 7) {
-                        if (data.cell.raw === 'FORA DO PADRÃO') {
-                            data.cell.styles.textColor = [185, 28, 28]; // Vermelho escuro para alertas
+                        if (data.cell.raw === 'CRÍTICO') {
+                            data.cell.styles.textColor = [185, 28, 28];
                             data.cell.styles.fontStyle = 'bold';
                         } else {
-                            data.cell.styles.textColor = [4, 120, 87]; // Verde de conformidade
+                            data.cell.styles.textColor = [4, 120, 87];
                         }
                     }
                 }
             });
 
-            doc.save(`auditoria-rotas-unimed-${filtro.toLowerCase()}-${new Date().toISOString().slice(0,10)}.pdf`);
+            doc.save(`auditoria-geral-rotas-${filtro.toLowerCase()}.pdf`);
         }
     </script>
 </body>
